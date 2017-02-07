@@ -5,6 +5,20 @@ import (
 	"math"
 )
 
+func MatrixSize(matrix []int) (int, error) {
+	l := len(matrix)
+	if l == 0 {
+		return 0, nil
+	}
+
+	for i := 0; i*i <= l; i++ {
+		if i*i == l {
+			return i, nil
+		}
+	}
+	return -1, errors.New("matrix is not square-size")
+}
+
 // CalcVariance calculates Variance of values
 func CalcVariance(values []int) (float64, error) {
 	if len(values) <= 0 {
@@ -29,9 +43,12 @@ func CalcVariance(values []int) (float64, error) {
 
 // Calculate sum of row[i]
 func RowSum(values []int, i int) (int, error) {
-	size := len(values)
+	size, err := MatrixSize(values)
+	if err != nil {
+		return 0, err
+	}
 	if i < 0 || i >= size {
-		return -1, errors.New("invalid index")
+		return 0, errors.New("invalid index")
 	}
 
 	sum := 0
@@ -44,9 +61,12 @@ func RowSum(values []int, i int) (int, error) {
 
 // Calculate sum of col[i]
 func ColSum(values []int, i int) (int, error) {
-	size := len(values)
+	size, err := MatrixSize(values)
+	if err != nil {
+		return 0, err
+	}
 	if i < 0 || i >= size {
-		return -1, errors.New("invalid index")
+		return 0, errors.New("invalid index")
 	}
 
 	sum := 0
@@ -58,35 +78,46 @@ func ColSum(values []int, i int) (int, error) {
 }
 
 // Calculate diagonal
-func DiagonalSum(values []int) (sum int) {
-	size := len(values)
-	for i := 0; i < size; i++ {
-		sum += values[i*i]
+func DiagonalSum(values []int) (int, error) {
+	size, err := MatrixSize(values)
+	if err != nil {
+		return 0, err
 	}
-	return sum
+
+	sum := 0
+	for i := 0; i < size; i++ {
+		sum += values[size*i+i]
+	}
+	return sum, nil
 }
 
 // Calculation matrix evaluated score
 // it is variance of sum of each row column and diagonal
-func CalcScore(values []int) (score float64, err error) {
-	size := len(values)
+func CalcScore(values []int) (float64, error) {
+	size, err := MatrixSize(values)
+	if err != nil {
+		return 0.0, err
+	}
 	sums := make([]int, size*2+1)
 
 	// calculate sum
 	for i := 0; i < size; i++ {
 		sums[i*2], err = RowSum(values, i)
 		if err != nil {
-			return -1, err
+			return 0, err
 		}
 
 		sums[i*2+1], err = ColSum(values, i)
 		if err != nil {
-			return -1, err
+			return 0, err
 		}
 	}
-	sums[size*size] = DiagonalSum(values)
+	sums[size*size], err = DiagonalSum(values)
+	if err != nil {
+		return 0, err
+	}
 
-	score, err = CalcVariance(sums)
+	score, err := CalcVariance(sums)
 	if err != nil {
 		return 0.0, nil
 	}
