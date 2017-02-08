@@ -1,8 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"io"
+	"log"
 	"math"
+	"os"
+	"strconv"
 )
 
 func MatrixSize(matrix []int) (int, error) {
@@ -125,5 +131,50 @@ func CalcScore(values []int) (float64, error) {
 	return score, nil
 }
 
+func ReadInput(reader io.Reader) ([]int, error) {
+	sc := bufio.NewScanner(reader)
+	sc.Split(bufio.ScanWords) // split by nl or space
+
+	// read size
+	if !sc.Scan() {
+		return nil, errors.New("invalid format")
+	}
+	size, err := strconv.Atoi(sc.Text())
+	if err != nil {
+		return nil, err
+	}
+
+	// read values
+	values := make([]int, 0, size*size)
+
+	for i := 0; i < size*size; i++ {
+		if !sc.Scan() {
+			return nil, errors.New("invalid format")
+		}
+		v, err := strconv.Atoi(sc.Text())
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+
+	return values, nil
+}
+
 func main() {
+	if len(os.Args) < 2 {
+		log.Fatalf("%s: <input file>\n", os.Args[0])
+	}
+
+	file, err := os.Open(os.Args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	values, err := ReadInput(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(values)
 }
