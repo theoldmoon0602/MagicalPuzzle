@@ -118,7 +118,7 @@ func CalcScore(values []int) (float64, error) {
 			return 0, err
 		}
 	}
-	sums[size*size], err = DiagonalSum(values)
+	sums[size*2], err = DiagonalSum(values)
 	if err != nil {
 		return 0, err
 	}
@@ -161,20 +161,128 @@ func ReadInput(reader io.Reader) ([]int, error) {
 	return values, nil
 }
 
+func LinearSearch(values []int, needle int) int {
+	for i, v := range values {
+		if v == needle {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func DoOperations(matrix []int, r io.Reader) ([]int, error) {
+	// search zero position
+	zero := LinearSearch(matrix, 0)
+	if zero == -1 {
+		return nil, errors.New("no zero found")
+	}
+
+	// calculation matrix size
+	size, err := MatrixSize(matrix)
+	if err != nil {
+		return nil, err
+	}
+
+	// calculation zero position in 2D space
+	var x, y int
+	if zero == 0 {
+		x, y = 0, 0
+	} else {
+		y = zero / size
+		x = zero % size
+	}
+
+	for {
+		// read next operator
+		op := make([]byte, 1)
+		_, err := r.Read(op)
+		if op[0] == '\r' || op[0] == '\n' {
+			break
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		o := op[0]
+		dx, dy := 0, 0
+		switch o {
+		case 'h':
+			if x-1 < 0 {
+				return nil, errors.New("invalid operation")
+			}
+			dx--
+		case 'j':
+			if y+1 >= size {
+				return nil, errors.New("invalid operation")
+			}
+			dy++
+		case 'k':
+			if y-1 < 0 {
+				return nil, errors.New("invalid operation")
+			}
+			dy--
+		case 'l':
+			if x+1 >= size {
+				return nil, errors.New("invalid operation")
+			}
+			dx++
+		default:
+			return nil, errors.New("invalid operation")
+		}
+		// swap two values
+		a := (y+dy)*size + (x + dx)
+		b := y*size + x
+		matrix[a], matrix[b] = matrix[b], matrix[a]
+		x += dx
+		y += dy
+	}
+	return matrix, nil
+
+}
+
+func DumpMatrix(matrix []int) {
+	size, err := MatrixSize(matrix)
+	if err != nil {
+		return
+	}
+	for i := 0; i < size; i++ {
+		for j := 0; j < size; j++ {
+			fmt.Printf("%3d", matrix[size*i+j])
+		}
+		fmt.Print("\n")
+	}
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatalf("%s: <input file>\n", os.Args[0])
+	if len(os.Args) < 3 {
+		log.Fatalf("%s: <input file> <operation file>\n", os.Args[0])
 	}
 
 	file, err := os.Open(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
+
+	opfile, err := os.Open(os.Args[2])
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer opfile.Close()
 
 	values, err := ReadInput(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(values)
+	res, err := DoOperations(values, opfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(CalcScore(res))
 }
