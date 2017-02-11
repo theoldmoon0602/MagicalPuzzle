@@ -7,8 +7,10 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
+	"time"
 )
 
 func MatrixSize(matrix []int) (int, error) {
@@ -285,24 +287,50 @@ func DumpMatrix(matrix []int) {
 	}
 }
 
+func Solve(p *Puzzle) (float64, error) {
+	rand.Seed(time.Now().UnixNano())
+	ops := []byte{'h', 'j', 'l', 'k'}
+
+	curScore, _ := CalcScore(p.values)
+
+	for i := 0; i < 1000; {
+		o := rand.Intn(4)
+
+		err := p.DoOperation(ops[o])
+		if err != nil {
+			continue
+		}
+
+		score, err := CalcScore(p.values)
+		if err != nil {
+			return 0.0, err
+		}
+
+		if (score > curScore) && rand.Intn(5) == 0 {
+			pi := (o + 2) % 4
+			p.DoOperation(ops[pi])
+		} else {
+			if score < 5 {
+				break
+			}
+			curScore = score
+			fmt.Printf("%c", ops[o])
+			i++
+		}
+	}
+	return curScore, nil
+}
+
 func main() {
-	if len(os.Args) < 3 {
-		log.Fatalf("%s: <input file> <operation file>\n", os.Args[0])
+	if len(os.Args) < 2 {
+		log.Fatal("HogeEEEE")
 	}
-
-	file, err := os.Open(os.Args[1])
+	f, err := os.Open(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
-	opfile, err := os.Open(os.Args[2])
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer opfile.Close()
-
-	values, err := ReadInput(file)
+	values, err := ReadInput(f)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -311,16 +339,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = p.DoOperations(opfile)
-	if err != nil {
-		log.Fatal(err)
-	}
 	score, err := CalcScore(p.values)
+	v := score
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	DumpMatrix(p.values)
+	score, err = Solve(p)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	fmt.Printf("%f\n", score)
+	fmt.Printf("\nfrom %e(%.2f) -> ", v, v)
+	fmt.Printf("%e(%.2f)\n", score, score)
+	// DumpMatrix(p.values)
 }
